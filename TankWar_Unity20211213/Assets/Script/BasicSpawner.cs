@@ -25,18 +25,33 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
     [Header("畫布連線")]
     public GameObject goCanvas;
-    
+
+    [Header("版本文字")]
+    public Text textVersion;
+
     /// <summary>
     /// 玩家輸入的房間名稱
     /// </summary>
     private string roomNameInput;
+    private string stringVersion = "Copyright Ce 2022. | Ver 1.0 ";
+
+
+    private void Awake()
+    {
+        //W,H,是否為全螢幕
+        Screen.SetResolution(1920, 1080, false);
+        textVersion.text = stringVersion + Application.version;
+    }
 
     /// <summary>
     /// 連線執行器
     /// </summary>
     private NetworkRunner runner;
 
+    private Dictionary<PlayerRef, NetworkObject> players = new Dictionary<PlayerRef, NetworkObject>();
 
+    [Header("玩家生成位置")]
+    public Transform[] traSpawnPoint;
 
 
     #endregion
@@ -87,8 +102,8 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
             Scene = SceneManager.GetActiveScene().buildIndex,
             //
             SceneObjectProvider = gameObject.AddComponent<NetworkSceneManagerDefault>()
-            
-        }) ;
+
+        });
         print("<color=yellow>連線完成</color>");
         //goCanvas 隱藏畫布
         goCanvas.SetActive(false);
@@ -128,8 +143,31 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
     }
 
+
+
+    /// <summary>
+    /// 玩家連線輸入行為
+    /// </summary>
+    /// <param name="runner">連線執行器</param>
+    /// <param name="input">輸入資訊</param>
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
+        //新增連線輸入資料 結構 
+        NetworkInputdata inputData = new NetworkInputdata();
+
+        #region 自訂輸入按鍵與移動資訊
+        //上下左右
+        if (Input.GetKey(KeyCode.W)) inputData.direction += Vector3.forward;
+        if (Input.GetKey(KeyCode.S)) inputData.direction += Vector3.back;
+        if (Input.GetKey(KeyCode.A)) inputData.direction += Vector3.left;
+        if (Input.GetKey(KeyCode.D)) inputData.direction += Vector3.right;
+        
+        //左艦發射
+        inputData.inputFire = Input.GetKey(KeyCode.Mouse0);
+        
+        input.Set(inputData);           //輸入資訊.設定(連線輸入資料)
+
+        #endregion
 
     }
 
@@ -139,21 +177,41 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     }
 
     /// <summary>
+    /// 玩家資料集合：玩家參考資訊、玩家連線物件
+    /// 字典有Key可以直接抓取key值
+    /// 
+    /// </summary>
+   
+    /// <summary>
     /// 當玩家成功進入房間之後
     /// </summary>
     /// <param name="runner">連線執行器</param>
     /// <param name="player">玩家資訊</param>
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
+        int randSpawnPoint = UnityEngine.Random.Range(0, traSpawnPoint.Length);
         //NetworkPrefabRef 在連線的時候才會看到 跟Pun類似
-        //連線執行器.生成(NetworkPrefabRef類型的物件,座標,角度,玩家資訊)
         //Y給>0 避免插在土裡
-        runner.Spawn(goPlayer, new Vector3(-5,1,-10), Quaternion.identity,player);
+        //連線執行器.生成(NetworkPrefabRef類型的物件,座標,角度,玩家資訊)
+        //runner.Spawn(goPlayer, new Vector3(-5,1,-10), Quaternion.identity,player);
+        NetworkObject playerNetworkObject = runner.Spawn(goPlayer, traSpawnPoint[randSpawnPoint].position, Quaternion.identity, player);
+        //將玩家參考資訊與玩家連線物件添加到字典集合中
+        players.Add(player, playerNetworkObject);
     }
 
+    /// <summary>
+    /// 當玩家離開房間後
+    /// </summary>
+    /// <param name="runner"></param>
+    /// <param name="player"></param>
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
-
+        //如果離開的玩家連線物件存在就刪除   =>利用抓取Key值，刪除該物件
+        if (players.TryGetValue(player,out NetworkObject playerNetworkObject))
+        {
+            runner.Despawn(playerNetworkObject);    //連線執行器.取消生成(該玩家連線物件移除)
+            players.Remove(player);                 //玩家集合.移除(該玩家)
+        }
     }
 
     public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ArraySegment<byte> data)
