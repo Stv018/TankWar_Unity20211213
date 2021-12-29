@@ -18,6 +18,13 @@ using UnityEngine;
         /// ¬O§_ÂIÀ»¥ªÁä
         /// </summary>
         public bool inputFire;
+
+
+        /// <summary>
+        /// ·Æ¹«®y¼Ð
+        /// </summary>
+        public Vector3 positionMouse;
+        
     }
 
 

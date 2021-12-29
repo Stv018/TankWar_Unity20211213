@@ -21,6 +21,7 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     public InputField inputFieldJoinRoom;
     [Header("玩家控制物件")]
     // public GameObject goPlayer;      //未連線的測試
+    //連線專用預置物
     public NetworkPrefabRef goPlayer;   //連線之後要改成這個類型
 
     [Header("畫布連線")]
@@ -165,6 +166,20 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
         //左艦發射
         inputData.inputFire = Input.GetKey(KeyCode.Mouse0);
         
+       // input.Set(inputData);           //輸入資訊.設定(連線輸入資料)
+
+        #endregion
+
+        #region 滑鼠座標處理
+        inputData.positionMouse = Input.mousePosition;  //取得 滑鼠座標
+        inputData.positionMouse.z = 60;                 //設定 滑鼠座標Z軸 - 可以打到3D物件 - 大於攝影機的Y
+
+
+        Vector3 mouseToWorld = Camera.main.ScreenToWorldPoint(inputData.positionMouse); //透過API 將滑鼠轉為世界座標
+        inputData.positionMouse = mouseToWorld;     //儲存轉換後的滑鼠座標
+
+        #endregion
+
         input.Set(inputData);           //輸入資訊.設定(連線輸入資料)
 
         #endregion
@@ -181,12 +196,16 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     /// 字典有Key可以直接抓取key值
     /// 
     /// </summary>
-   
+
     /// <summary>
     /// 當玩家成功進入房間之後
     /// </summary>
     /// <param name="runner">連線執行器</param>
     /// <param name="player">玩家資訊</param>
+
+    //[Header("玩家生成位置")]
+    //public Transform[] traSpawnPoints;
+
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
         int randSpawnPoint = UnityEngine.Random.Range(0, traSpawnPoint.Length);
@@ -246,8 +265,7 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     /// 回呼   
     #endregion
 
-    #endregion
-
+   
 
 
 
